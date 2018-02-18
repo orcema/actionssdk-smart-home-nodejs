@@ -18,6 +18,7 @@ Config.smartHomeProviderGoogleClientId = "ZxjqWpsYj3"; // client id that Google 
 Config.smartHomeProvideGoogleClientSecret = "hIMH3uWlMVrqa7FAbKLBoNUMCyLCtv"; // client secret that Google will use
 Config.smartHomeProviderApiKey = "<API_KEY>"; // client API Key generated on the console
 Config.isLocal = false;
+Config.userDevicesPathForFile="filePathAndName";
 
 function init() {
   process.argv.forEach(function (value, i, arr) {
@@ -38,3 +39,4 @@ exports.smartHomeProvideGoogleClientSecret = Config.smartHomeProvideGoogleClient
 exports.smartHomeProviderCloudEndpoint = Config.smartHomeProviderCloudEndpoint;
 exports.smartHomeProviderApiKey = Config.smartHomeProviderApiKey;
 exports.isLocal = Config.isLocal;
+exports.userDevicesPathForFile= Config.userDevicesPathForFile

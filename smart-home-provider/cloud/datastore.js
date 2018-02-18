@@ -38,6 +38,7 @@
 
 const config = require('./config-provider');
 const Data = {};
+const fs = require('fs');
 
 /**
  * Structure of Auth
@@ -331,15 +332,14 @@ Data.getProperties = function (uid, deviceIds = undefined) {
  */
 Data.getStatus = function (uid, deviceIds = undefined) {
   // return Data.getUid(uid);
-  if (!Data[uid]) {
-    console.error("cannot getStatus of devices without first registering the user!");
-    return;
-  }
+
+  //load the user devices from file IF NOT YET LOADED
+  if (!Data[uid]) Data.loadUserDevices(uid);
 
   // console.log('getStatus deviceIds', deviceIds);
   if (!deviceIds || deviceIds == {} ||
       (Object.keys(deviceIds).length === 0 && deviceIds.constructor === Object))
-    return Data.getUid(uid);
+    return Data[uid];
 
   let devices = {};
   for (let i = 0; i < deviceIds.length; i++) {
@@ -364,8 +364,6 @@ Data.registerUser = function (uid, authToken) {
     console.error("cannot register a user without an authToken!");
     return;
   }
-  if (!Data[uid])
-    Data[uid] = {};
   Auth[uid] = authToken;
   Data.version++;
 };
@@ -412,10 +410,9 @@ Data.removeUser = function (uid, authToken) {
  * }
  */
 Data.execDevice = function (uid, device) {
-  if (!Data[uid]) {
-    console.error("cannot register a device without first registering the user!");
-    return;
-  }
+  //load the user devices from file IF NOT YET LOADED
+  if (!Data[uid]) Data.loadUserDevices(uid);
+
   // console.log('execDevice', device);
   if (!Data[uid][device.id])
     Data[uid][device.id] = {
@@ -442,6 +439,10 @@ Data.execDevice = function (uid, device) {
   }
   // console.log('execDevice after', Data[uid][device.id]);
   Data.version++;
+
+  //update file with user devices
+  Data.saveUserDevices(uid);
+
 };
 
 /**
@@ -460,10 +461,10 @@ Data.registerDevice = function (uid, device) {
  */
 Data.resetDevices = function (uid) {
   // Deletes all devices for the user.
-  if (!Data[uid]) {
-    console.error("cannot remove a device without first registering the user!");
-    return;
-  }
+  
+  //load the user devices from file IF NOT YET LOADED
+  if (!Data[uid]) Data.loadUserDevices(uid);
+
   console.info("Deleting all devices for " + uid);
   Data[uid] = {};
   Data.version = 0;
@@ -476,13 +477,14 @@ Data.resetDevices = function (uid) {
  * @param device
  */
 Data.removeDevice = function (uid, device) {
-  if (!Data[uid]) {
-    console.error("cannot remove a device without first registering the user!");
-    return;
-  }
+ 
+  //load the user devices from file IF NOT YET LOADED
+  if (!Data[uid]) Data.loadUserDevices(uid);
+ 
   console.info("Deleting device " + device.id + " for " + uid);
   delete Data[uid][device.id];
   Data.version++;
+  Data.saveUserDevices(uid);
 };
 
 /**
@@ -501,6 +503,52 @@ Data.isValidAuth = function (uid, authToken) {
   // return (authToken == Auth[uid]);
 };
 
+/**
+ * saves current userdevices to file
+ *
+ * @param uid
+ * @returns {boolean}
+ */
+
+Data.saveUserDevices = function(uid){
+  var userDeviceFile=config.userDevicesPathForFile+uid+'.udev';
+  fs.writeFile(userDeviceFile, JSON.stringify(Data[uid]), function (err) {
+    if (err){
+      console.warn('ERROR updating user device file ['+userDeviceFile+"] !!");
+      console.log(err);
+      return false;
+    }
+    console.log('user device file ['+userDeviceFile+"] updated");
+    return true;
+  });
+};
+
+/**
+ * loads saved userdevices from file
+ *
+ * @param uid
+ * @returns none 
+ */
+
+Data.loadUserDevices=function(uid){
+    var userDeviceFile=config.userDevicesPathForFile+uid+'.udev'; 
+    new Promise(
+        function(resolve,reject){
+          var fileContent=fs.readFileSync(userDeviceFile, 'utf8');
+          Data[uid] =   JSON.parse(fileContent)
+          resolve();
+        })
+    .then(function(message){
+      console.log("loading user devices from file ["+userDeviceFile+"] with success");
+    })
+    .catch(function(error){
+      Data[uid]={};
+      console.warn("loading user devices from file ["+userDeviceFile+"] with error: ["+error+"]");
+    });
+
+};
+
+
 exports.getUid = Data.getUid;
 exports.getStatus = Data.getStatus;
 exports.getStates = Data.getStates;
@@ -513,3 +561,5 @@ exports.registerDevice = Data.registerDevice;
 exports.resetDevices = Data.resetDevices;
 exports.removeDevice = Data.removeDevice;
 exports.Auth = Auth;
+exports.saveUserDevices=Data.saveUserDevices;
+exports.loadUserDevices=Data.loadUserDevices;

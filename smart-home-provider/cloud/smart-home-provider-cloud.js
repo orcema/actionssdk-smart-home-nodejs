@@ -33,6 +33,12 @@ if (config.smartHomeProviderApiKey === '<API_KEY>') {
   process.exit();
 }
 
+if (config.userDevicesPathForFile==="filePathAndName"){
+  console.warn("You havn't setup the path for the files holding the user devices ");
+  process.exit();
+}
+
+
 const app = express();
 app.use(morgan('dev'));
 app.use(bodyParser.json());
@@ -269,6 +275,10 @@ app.post('/smart-home-api/exec', function (request, response) {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     })
     .send(executedDevice);
+
+  //update userDeviceFile with this modifications
+   datastore.saveUserDevices(uid);
+
 });
 
 app.post('/smart-home-api/execute-scene', function(request, response) {
